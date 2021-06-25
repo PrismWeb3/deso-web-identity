@@ -104,12 +104,37 @@ class Identity {
         }
         break;
       }
+      case "sign": {
+        console.log("message from sign damien")
+        break;
+      }
     }
   }
 
+  // signs and submits transaction
+  async signAndSend(transaction, resolve, reject) {
+    let locals = JSON.parse(localStorage.getItem("users"))
+    locals = locals.users[locals.publicKeyAdded]
+    this.log(transaction)
+    this.contactFrame(uuidv4(), {
+      service: "identity",
+      method: "sign",
+      payload: {
+        accessLevel: locals["accessLevel"],
+        accessLevelHmac: locals["accessLevelHmac"],
+        encryptedSeedHex: locals["encryptedSeedHex"],
+        transactionHex: transaction["TransactionHex"],
+      }
+    }, resolve, reject);
+  }
+
   // queueing system for handling post submits one by one
-  contactFrame(id, payload) {
-    this.outgoing[id] = payload;
+  contactFrame(id, payload, resolve = null, reject = null) {
+    this.outgoing[id] = {
+      resolve: resolve,
+      reject: reject,
+      ...payload
+    }
     this.iframe.contentWindow.postMessage({
       id,
       ...payload,
@@ -126,7 +151,7 @@ class Identity {
 
   constructor(config) {
     this.config = Object.assign({}, this.config, config);
-    this.router = new Router(this.config);
+    this.router = new Router(this);
     this.log(`Generating test UUID: ${uuidv4()}`);
     window.addEventListener("message", (msg) => {
       // basic checks to make sure window calls are accurate
