@@ -1,11 +1,11 @@
 import { Router } from "./classes/Router.js";
-import { v4 as uuidv4 } from "./deps/uuid/index.js";
+import { parse, v4 as uuidv4 } from "./deps/uuid/index.js";
 
 class Identity {
   identityWindow = null;
   iframe = null;
   initialized = false;
-  signingBusy = false;
+  signingReady = false;
   signingQueue = [];
   outgoing = {};
   config = {
@@ -53,21 +53,28 @@ class Identity {
       // identity window only
 
       case "login": {
+        // Handle sending off signed transaction
         if (payload.signedTransactionHex) {
-          // Handle sending off signed transaction
+          const outgoing = this.outgoing["windowSign"];
+          this.router.post("submit-transaction", {
+            "TransactionHex": payload.signedTransactionHex,
+          });
+          outgoing.resolve(outgoing.payload);
+          this.identityWindow.close();
+        } else {
+          localStorage.setItem("users", JSON.stringify(payload));
+          this.log(
+            `Added login data to local cache\nLocal storage name: users\nData contained: ${
+              localStorage.getItem("users")
+            }`,
+          );
+          this.identityWindow.close();
+          this.log("Closed identity window");
+          this.contactFrame(uuidv4(), {
+            service,
+            method: "info",
+          });
         }
-        localStorage.setItem("users", JSON.stringify(payload));
-        this.log(
-          `Added login data to local cache\nLocal storage name: users\nData contained: ${
-            localStorage.getItem("users")
-          }`,
-        );
-        this.identityWindow.close();
-        this.log("Closed identity window");
-        this.contactFrame(uuidv4(), {
-          service,
-          method: "info",
-        });
         break;
       }
       case "storageGranted": {
@@ -83,9 +90,9 @@ class Identity {
     const {
       data: { id, payload },
     } = msg;
-    const recieved = this.outgoing[id];
-    this.log(`Response type: ${recieved.method}`);
-    switch (recieved.method) {
+    const outgoing = this.outgoing[id];
+    this.log(`Response type: ${outgoing.method}`);
+    switch (outgoing.method) {
       case "info": {
         if (!payload.hasStorageAccess) {
           this.log("Browser does not have storage access yet");
@@ -101,31 +108,46 @@ class Identity {
           );
           /* Added code to handle start of transaction signing and sending*/
           this.signingReady = true;
+          this.router.next();
         }
         break;
       }
       case "sign": {
-        console.log("message from sign damien")
+        this.log(outgoing.payload.transactionHex);
+        if (payload["approvalRequired"]) {
+          this.log("Approval is required for signing");
+          this.outgoing["windowSign"] = this.outgoing[id];
+          this.identityWindow = window.open(
+            `https://identity.bitclout.com/approve?tx=${outgoing.payload.transactionHex}&id=${id}`,
+          );
+        }
         break;
       }
     }
   }
 
   // signs and submits transaction
-  async signAndSend(transaction, resolve, reject) {
-    let locals = JSON.parse(localStorage.getItem("users"))
-    locals = locals.users[locals.publicKeyAdded]
-    this.log(transaction)
-    this.contactFrame(uuidv4(), {
-      service: "identity",
-      method: "sign",
-      payload: {
-        accessLevel: locals["accessLevel"],
-        accessLevelHmac: locals["accessLevelHmac"],
-        encryptedSeedHex: locals["encryptedSeedHex"],
-        transactionHex: transaction["TransactionHex"],
-      }
-    }, resolve, reject);
+  async signTransaction(transaction, resolve, reject) {
+    let locals = JSON.parse(localStorage.getItem("users"));
+    locals = locals.users[locals.publicKeyAdded];
+    this.contactFrame(
+      uuidv4(),
+      {
+        service: "identity",
+        method: "sign",
+        payload: {
+          accessLevel: locals["accessLevel"],
+          accessLevelHmac: locals["accessLevelHmac"],
+          encryptedSeedHex: locals["encryptedSeedHex"],
+          transactionHex: transaction["TransactionHex"],
+        },
+      },
+      resolve,
+      reject,
+    );
+  }
+
+  async submitTransaction(transactionHex) {
   }
 
   // queueing system for handling post submits one by one
@@ -133,8 +155,8 @@ class Identity {
     this.outgoing[id] = {
       resolve: resolve,
       reject: reject,
-      ...payload
-    }
+      ...payload,
+    };
     this.iframe.contentWindow.postMessage({
       id,
       ...payload,
