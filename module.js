@@ -1,3 +1,4 @@
+import { Router } from "./router.js"
 import { v4 as uuidv4 } from "./deps/uuid/index.js";
 
 class Identity {
@@ -10,6 +11,7 @@ class Identity {
     requestRoute: null,
     logs: false,
   };
+  router = null;
 
   // starts initialize phase
   initialize() {
@@ -101,6 +103,10 @@ class Identity {
       }
     }
   }
+
+  submit(payload) {
+    
+  }
   contactFrame(id, payload) {
     this.outgoing[id] = payload;
     this.iframe.contentWindow.postMessage({
@@ -119,6 +125,7 @@ class Identity {
 
   constructor(config) {
     this.config = Object.assign({}, this.config, config);
+    this.router = new Router(this.config);
     this.log(`Generating test UUID: ${uuidv4()}`);
     window.addEventListener("message", (msg) => {
       // basic checks to make sure window calls are accurate
