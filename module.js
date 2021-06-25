@@ -1,4 +1,4 @@
-import { Router } from "./router.js";
+import { Router } from "./classes/Router.js";
 import { v4 as uuidv4 } from "./deps/uuid/index.js";
 
 class Identity {
