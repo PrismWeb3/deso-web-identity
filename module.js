@@ -1,11 +1,12 @@
-import { Router } from "./router.js"
+import { Router } from "./router.js";
 import { v4 as uuidv4 } from "./deps/uuid/index.js";
 
 class Identity {
   identityWindow = null;
   iframe = null;
   initialized = false;
-  requestQueue = [];
+  signingBusy = false;
+  signingQueue = [];
   outgoing = {};
   config = {
     requestRoute: null,
@@ -50,6 +51,7 @@ class Identity {
       }
 
       // identity window only
+
       case "login": {
         if (payload.signedTransactionHex) {
           // Handle sending off signed transaction
@@ -69,7 +71,7 @@ class Identity {
         break;
       }
       case "storageGranted": {
-        this.log("Storage access has been granted to the iframe")
+        this.log("Storage access has been granted to the iframe");
         /* Added code to handle this edge case*/
         break;
       }
@@ -78,8 +80,8 @@ class Identity {
 
   // handles all message responses from iframe
   handleResponse(msg) {
-    const { 
-      data: { id, payload } 
+    const {
+      data: { id, payload },
     } = msg;
     const recieved = this.outgoing[id];
     this.log(`Response type: ${recieved.method}`);
@@ -98,15 +100,14 @@ class Identity {
             "Passed browser verification. Signing and decryption are available",
           );
           /* Added code to handle start of transaction signing and sending*/
+          this.signingReady = true;
         }
         break;
       }
     }
   }
 
-  submit(payload) {
-    
-  }
+  // queueing system for handling post submits one by one
   contactFrame(id, payload) {
     this.outgoing[id] = payload;
     this.iframe.contentWindow.postMessage({
