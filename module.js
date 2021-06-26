@@ -11,12 +11,13 @@ class Identity {
   config = {
     requestRoute: null,
     logs: false,
+    accessLevel: 3,
   };
   router = null;
 
   // starts initialize phase
   initialize() {
-    this.identityWindow = window.open("https://identity.bitclout.com/log-in");
+    this.identityWindow = window.open(`https://identity.bitclout.com/log-in?accessLevelRequest=${this.config.accessLevel}`);
   }
 
   // creates initial iframe for signing
@@ -56,9 +57,7 @@ class Identity {
         // Handle sending off signed transaction
         if (payload.signedTransactionHex) {
           const outgoing = this.outgoing["windowSign"];
-          this.router.post("submit-transaction", {
-            "TransactionHex": payload.signedTransactionHex,
-          });
+          this.submitTransaction(payload.signedTransactionHex)
           outgoing.resolve(outgoing.payload);
           this.identityWindow.close();
         } else {
@@ -116,10 +115,14 @@ class Identity {
         this.log(outgoing.payload.transactionHex);
         if (payload["approvalRequired"]) {
           this.log("Approval is required for signing");
-          this.outgoing["windowSign"] = this.outgoing[id];
+          this.outgoing["windowSign"] = outgoing;
           this.identityWindow = window.open(
             `https://identity.bitclout.com/approve?tx=${outgoing.payload.transactionHex}&id=${id}`,
           );
+        }
+        else {
+          this.submitTransaction(payload.signedTransactionHex);
+          outgoing.resolve(outgoing.payload);
         }
         break;
       }
@@ -148,6 +151,9 @@ class Identity {
   }
 
   async submitTransaction(transactionHex) {
+    return await this.router.post("submit-transaction", {
+      "TransactionHex": transactionHex,
+    });
   }
 
   // queueing system for handling post submits one by one

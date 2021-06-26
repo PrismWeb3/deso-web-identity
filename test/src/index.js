@@ -7,7 +7,7 @@ const activeUser = JSON.parse(localStorage.getItem("users")).publicKeyAdded;
 ident.router.submit("submit-post", {
   UpdaterPublicKeyBase58Check: activeUser,
   BodyObj: {
-    Body: "Test post using Identity library ;)",
+    Body: "Test post 2 using Identity library ;)",
     ImageURLs: [],
   },
   IsHidden: false,
