@@ -47,18 +47,17 @@ class Router {
     if (response.ok) {
       response = await response.json();
       this.identity.signTransaction(response, resolve, reject);
-    } else if (response.status === 400) {
-      reject(this.identity.errorMessage("BadRequest"));
-    }
-    switch (response.status) {
-      case 400: {
-        reject(this.identity.errorMessage("BadRequest"));
-        break;
-      }
-      case 429: {
-        this.queue.unshift(item);
-        // waits two seconds before sending more requests
-        await delay(2000);
+    } else {
+      switch (response.status) {
+        case 400: {
+          reject(this.identity.errorMessage("BAD_REQUEST"));
+          break;
+        }
+        case 429: {
+          this.queue.unshift(item);
+          // waits two seconds before sending more requests
+          await delay(2000);
+        }
       }
     }
     this.busy = false;

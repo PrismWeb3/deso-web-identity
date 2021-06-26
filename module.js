@@ -34,8 +34,10 @@ class Identity {
     requestRoute: null,
     logs: false,
     accessLevel: 3,
+    approvalTime: 10,
   };
   router = null;
+  windowTimeout = null;
 
   // starts initialize phase
   initialize() {
@@ -86,15 +88,19 @@ class Identity {
         // checks if a signed transaction was included
         const outgoing = this.outgoing["windowSign"];
         if (payload.signedTransactionHex) {
+          clearTimeout(this.windowTimeout);
           this.submitTransaction(payload.signedTransactionHex);
           outgoing.resolve(outgoing.payload);
           delete this.outgoing["windowSign"];
           this.identityWindow.close();
+          this.identityWindow = null;
         } else if (!payload.publicKeyAdded) {
+          clearTimeout(this.windowTimeout);
           this.log("Transaction rejected");
-          outgoing.reject(this.errorMessage("denied"));
+          outgoing.reject(this.errorMessage("DENIED"));
           delete this.outgoing["windowSign"];
           this.identityWindow.close();
+          this.identityWindow = null;
           // if no signed transaction, assume regular login
         } else {
           // store information for future logins
@@ -106,6 +112,7 @@ class Identity {
           );
           // close window, as no longer needed
           this.identityWindow.close();
+          this.identityWindow = null;
           this.log("Closed identity window");
           this.contactFrame(uuidv4(), {
             service,
@@ -153,10 +160,22 @@ class Identity {
         this.log(outgoing.payload.transactionHex);
         if (payload["approvalRequired"]) {
           this.log("Approval is required for signing");
+          if (this.identityWindow) {
+            this.identityWindow.close();
+            clearTimeout(this.windowTimeout);
+            this.outgoing["windowSign"].reject(
+              this.errorMessage("NEW_APPROVAL_WINDOW"),
+            );
+          }
           this.outgoing["windowSign"] = outgoing;
           this.identityWindow = window.open(
             `https://identity.bitclout.com/approve?tx=${outgoing.payload.transactionHex}`,
           );
+          this.windowTimeout = setTimeout(() => {
+            outgoing.reject(this.errorMessage("APPROVAL_TIME_REACHED"));
+            this.identityWindow.close();
+            this.identityWindow = null;
+          }, this.config.approvalTime * 1000);
         } else {
           this.submitTransaction(payload.signedTransactionHex);
           outgoing.resolve(outgoing.payload);

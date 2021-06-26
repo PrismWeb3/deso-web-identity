@@ -5,18 +5,21 @@ const ident = new Identity({
   accessLevel: 2,
 });
 const activeUser = JSON.parse(localStorage.getItem("users")).publicKeyAdded;
-ident.router.submit("submit-post", {
-  UpdaterPublicKeyBase58Check: activeUser,
-  BodyObj: {
-    Body: "This should be hidden",
-    ImageURLs: [],
-  },
-  IsHidden: false,
-  MinFeeRateNanosPerKB: 1000,
-}).then((res) => {
-  console.log(response);
-}).catch((res) => {
-  console.log(`Transaction failed for reason: ${res.reason}`);
-});
+function makeTestPost() {
+  ident.router.submit("submit-post", {
+    UpdaterPublicKeyBase58Check: activeUser,
+    BodyObj: {
+      Body: "This should be hidden",
+      ImageURLs: [],
+    },
+    IsHidden: false,
+    MinFeeRateNanosPerKB: 1000,
+  }).then((res) => {
+    console.log(response);
+  }).catch((res) => {
+    console.log(`Transaction failed for reason: ${res.reason}`);
+  });
+}
 
 window.Identity = ident;
+window.makeTestPost = makeTestPost;
