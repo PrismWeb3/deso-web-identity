@@ -11,7 +11,7 @@ ident.router.submit("submit-post", {
     Body: "This should be hidden",
     ImageURLs: [],
   },
-  IsHidden: true,
+  IsHidden: false,
   MinFeeRateNanosPerKB: 1000,
 }).then((res) => {
   console.log(response);

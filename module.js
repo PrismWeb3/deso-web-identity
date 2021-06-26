@@ -92,9 +92,7 @@ class Identity {
           this.identityWindow.close();
         } else if (!payload.publicKeyAdded) {
           this.log("Transaction rejected");
-          outgoing.reject({
-            reason: "denied",
-          });
+          outgoing.reject(this.errorMessage("denied"));
           delete this.outgoing["windowSign"];
           this.identityWindow.close();
           // if no signed transaction, assume regular login
@@ -195,6 +193,11 @@ class Identity {
     });
   }
 
+  errorMessage(reason) {
+    return {
+      reason,
+    };
+  }
   // queueing system for handling post submits one by one
   contactFrame(id, payload, resolve = null, reject = null) {
     this.outgoing[id] = {

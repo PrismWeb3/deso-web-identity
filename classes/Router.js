@@ -1,3 +1,5 @@
+import { delay } from "../deps/deno/async/delay.js";
+
 class Router {
   identity = null;
   queue = [];
@@ -45,8 +47,21 @@ class Router {
     if (response.ok) {
       response = await response.json();
       this.identity.signTransaction(response, resolve, reject);
-      this.busy = false;
+    } else if (response.status === 400) {
+      reject(this.identity.errorMessage("BadRequest"));
     }
+    switch (response.status) {
+      case 400: {
+        reject(this.identity.errorMessage("BadRequest"));
+        break;
+      }
+      case 429: {
+        this.queue.unshift(item);
+        // waits two seconds before sending more requests
+        await delay(2000);
+      }
+    }
+    this.busy = false;
     return this.next();
   }
 
