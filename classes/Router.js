@@ -57,6 +57,7 @@ class Router {
           this.queue.unshift(item);
           // waits two seconds before sending more requests
           await delay(2000);
+          break;
         }
       }
     }

@@ -30,6 +30,13 @@ class Identity {
   signingReady = false;
   signingQueue = [];
   outgoing = {};
+  promises = {
+    users: {
+      resolve: null,
+      reject: null,
+      resolved: false,
+    },
+  };
   config = {
     requestRoute: null,
     logs: false,
@@ -41,9 +48,29 @@ class Identity {
 
   // starts initialize phase
   initialize() {
+    if (this.outgoing["windowSign"]) {
+      clearTimeout(this.windowTimeout);
+      this.outgoing["windowSign"].reject(
+        this.errorMessage("NEW_LOGIN_WINDOW"),
+      );
+      delete this.outgoing["windowSign"];
+      this.identityWindow.close();
+    }
     this.identityWindow = window.open(
       `https://identity.bitclout.com/log-in?accessLevelRequest=${this.config.accessLevel}`,
     );
+  }
+
+  get users() {
+    return new Promise((resolve) => {
+      const users_local = localStorage.getItem("users");
+      if (users_local) {
+        this.promises.users.resolved = true;
+        resolve(users_local);
+      } else {
+        this.promises.users.resolve = resolve;
+      }
+    });
   }
 
   // creates initial iframe for signing
@@ -105,6 +132,7 @@ class Identity {
         } else {
           // store information for future logins
           localStorage.setItem("users", JSON.stringify(payload));
+          this.resolver(this.promises.users, localStorage.getItem("users"));
           this.log(
             `Added login data to local cache\nLocal storage name: users\nData contained: ${
               localStorage.getItem("users")
@@ -163,9 +191,11 @@ class Identity {
           if (this.identityWindow) {
             this.identityWindow.close();
             clearTimeout(this.windowTimeout);
-            this.outgoing["windowSign"].reject(
-              this.errorMessage("NEW_APPROVAL_WINDOW"),
-            );
+            if (this.outgoing["windowSign"]) {
+              this.outgoing["windowSign"].reject(
+                this.errorMessage("NEW_APPROVAL_WINDOW"),
+              );
+            }
           }
           this.outgoing["windowSign"] = outgoing;
           this.identityWindow = window.open(
@@ -217,6 +247,18 @@ class Identity {
       reason,
     };
   }
+
+  /*
+  Simple function used for handling promises even if they don't exist.
+  Returns nothing if promise is non existent.
+  */
+  resolver(promise, payload, error = false) {
+    if (!promise.resolved) {
+      promise.resolved = true;
+      if (error) promise.reject(payload);
+      else promise.resolve(payload);
+    } else return;
+  }
   // queueing system for handling post submits one by one
   contactFrame(id, payload, resolve = null, reject = null) {
     this.outgoing[id] = {
@@ -241,6 +283,7 @@ class Identity {
   constructor(config) {
     this.config = Object.assign({}, this.config, config);
     this.router = new Router(this);
+
     this.log(`Generating test UUID: ${uuidv4()}`);
     window.addEventListener("message", (msg) => {
       // basic checks to make sure window calls are accurate
