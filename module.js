@@ -1,5 +1,27 @@
+/*
+Note to reader.. logic inside this library is fairly complex due to
+the terrible nature of the identity library.. I suggest you read the
+docs thuroughly before reading through the src and/or making a pull
+request.
+(https://docs.bitclout.com/devs/identity-api)
+
+This library runs off a request and response handler, as well as
+global promises created from classes/Router.js . Router.js creates a
+resolve and reject value 9which can be found scattered across this
+library, so that a response is always returned to the same caller function.
+
+The UUID dependency is used for creating unique ID's when sending
+requests to the iframe. These ID's are kept track of through the
+variable this.outgoing
+*/
+
+/*
+Dependecies:
+- Router: custom class meant to handle all request queueing in library
+- uuidv4 (https://github.com/uuidjs/uuid): generates UUID
+*/
 import { Router } from "./classes/Router.js";
-import { parse, v4 as uuidv4 } from "./deps/uuid/index.js";
+import { v4 as uuidv4 } from "./deps/uuid/index.js";
 
 class Identity {
   identityWindow = null;
@@ -17,7 +39,9 @@ class Identity {
 
   // starts initialize phase
   initialize() {
-    this.identityWindow = window.open(`https://identity.bitclout.com/log-in?accessLevelRequest=${this.config.accessLevel}`);
+    this.identityWindow = window.open(
+      `https://identity.bitclout.com/log-in?accessLevelRequest=${this.config.accessLevel}`,
+    );
   }
 
   // creates initial iframe for signing
@@ -38,6 +62,10 @@ class Identity {
     } = msg;
 
     switch (method) {
+      /*
+      Initializes both window and iframe
+      (https://docs.bitclout.com/devs/identity-api#initialize)
+      */
       case "initialize": {
         if (!this.initialized) {
           this.initialized = true;
@@ -50,23 +78,35 @@ class Identity {
         this.log(`Initialization payload sent`);
         break;
       }
-
-      // identity window only
-
+      /*
+      handles login event from window for both auth or hex signing
+      (https://docs.bitclout.com/devs/identity-api#login)
+      */
       case "login": {
-        // Handle sending off signed transaction
+        // checks if a signed transaction was included
+        const outgoing = this.outgoing["windowSign"];
         if (payload.signedTransactionHex) {
-          const outgoing = this.outgoing["windowSign"];
-          this.submitTransaction(payload.signedTransactionHex)
+          this.submitTransaction(payload.signedTransactionHex);
           outgoing.resolve(outgoing.payload);
+          delete this.outgoing["windowSign"];
           this.identityWindow.close();
+        } else if (!payload.publicKeyAdded) {
+          this.log("Transaction rejected");
+          outgoing.reject({
+            reason: "denied",
+          });
+          delete this.outgoing["windowSign"];
+          this.identityWindow.close();
+          // if no signed transaction, assume regular login
         } else {
+          // store information for future logins
           localStorage.setItem("users", JSON.stringify(payload));
           this.log(
             `Added login data to local cache\nLocal storage name: users\nData contained: ${
               localStorage.getItem("users")
             }`,
           );
+          // close window, as no longer needed
           this.identityWindow.close();
           this.log("Closed identity window");
           this.contactFrame(uuidv4(), {
@@ -117,10 +157,9 @@ class Identity {
           this.log("Approval is required for signing");
           this.outgoing["windowSign"] = outgoing;
           this.identityWindow = window.open(
-            `https://identity.bitclout.com/approve?tx=${outgoing.payload.transactionHex}&id=${id}`,
+            `https://identity.bitclout.com/approve?tx=${outgoing.payload.transactionHex}`,
           );
-        }
-        else {
+        } else {
           this.submitTransaction(payload.signedTransactionHex);
           outgoing.resolve(outgoing.payload);
         }

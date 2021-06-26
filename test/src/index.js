@@ -2,18 +2,21 @@ import { Identity } from "../../module.js";
 const ident = new Identity({
   logs: true,
   requestRoute: "http://localhost:8079/https://bitclout.com/",
+  accessLevel: 2,
 });
 const activeUser = JSON.parse(localStorage.getItem("users")).publicKeyAdded;
 ident.router.submit("submit-post", {
   UpdaterPublicKeyBase58Check: activeUser,
   BodyObj: {
-    Body: "Test post 2 using Identity library ;)",
+    Body: "This should be hidden",
     ImageURLs: [],
   },
-  IsHidden: false,
+  IsHidden: true,
   MinFeeRateNanosPerKB: 1000,
-}).then((response) => {
+}).then((res) => {
   console.log(response);
+}).catch((res) => {
+  console.log(`Transaction failed for reason: ${res.reason}`);
 });
 
 window.Identity = ident;
