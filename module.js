@@ -19,9 +19,11 @@ variable this.outgoing
 Dependecies:
 - Router: custom class meant to handle all request queueing in library
 - uuidv4 (https://github.com/uuidjs/uuid): generates UUID
+- deferred (https://deno.land/std@0.99.0/async/deferred.ts): creates neater promises
 */
 import { Router } from "./classes/Router.js";
 import { v4 as uuidv4 } from "./deps/uuid/index.js";
+import * as DenoAsync from "./deps/deno/async/mod.js";
 
 class Identity {
   identityWindow = null;
@@ -31,11 +33,7 @@ class Identity {
   signingQueue = [];
   outgoing = {};
   promises = {
-    users: {
-      resolve: null,
-      reject: null,
-      resolved: false,
-    },
+    users: DenoAsync.deferred(),
   };
   config = {
     requestRoute: null,
@@ -48,6 +46,11 @@ class Identity {
 
   // starts initialize phase
   initialize() {
+    const users_local = localStorage.getItem("users");
+    if (users_local && this.promises.users) {
+      this.promises.users.resolve(users_local);
+      this.promises.users = null;
+    }
     if (this.outgoing["windowSign"]) {
       clearTimeout(this.windowTimeout);
       this.outgoing["windowSign"].reject(
@@ -62,15 +65,7 @@ class Identity {
   }
 
   get users() {
-    return new Promise((resolve) => {
-      const users_local = localStorage.getItem("users");
-      if (users_local) {
-        this.promises.users.resolved = true;
-        resolve(users_local);
-      } else {
-        this.promises.users.resolve = resolve;
-      }
-    });
+    return this.promises.users;
   }
 
   // creates initial iframe for signing
@@ -208,6 +203,7 @@ class Identity {
           }, this.config.approvalTime * 1000);
         } else {
           this.submitTransaction(payload.signedTransactionHex);
+
           outgoing.resolve(outgoing.payload);
         }
         break;
@@ -236,8 +232,8 @@ class Identity {
     );
   }
 
-  async submitTransaction(transactionHex) {
-    return await this.router.post("submit-transaction", {
+  submitTransaction(transactionHex) {
+    this.router.post("submit-transaction", {
       "TransactionHex": transactionHex,
     });
   }
@@ -253,8 +249,7 @@ class Identity {
   Returns nothing if promise is non existent.
   */
   resolver(promise, payload, error = false) {
-    if (!promise.resolved) {
-      promise.resolved = true;
+    if (promise) {
       if (error) promise.reject(payload);
       else promise.resolve(payload);
     } else return;

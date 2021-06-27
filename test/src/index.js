@@ -2,7 +2,7 @@ import { Identity } from "../../module.js";
 const ident = new Identity({
   logs: true,
   requestRoute: "http://localhost:8079/https://bitclout.com/",
-  accessLevel: 2,
+  accessLevel: 3,
 });
 ident.users.then((users) => {
   console.log(users);

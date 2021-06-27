@@ -1,4 +1,4 @@
-import { delay } from "../deps/deno/async/delay.js";
+import * as DenoAsync from "../deps/deno/async/mod.js";
 
 class Router {
   identity = null;
@@ -56,7 +56,7 @@ class Router {
         case 429: {
           this.queue.unshift(item);
           // waits two seconds before sending more requests
-          await delay(2000);
+          await DenoAsync.delay(2000);
           break;
         }
       }
