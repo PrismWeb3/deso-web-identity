@@ -18,11 +18,12 @@ variable this.outgoing
 /*
 Dependecies:
 - Router: custom class meant to handle all request queueing in library
-- uuidv4 (https://github.com/uuidjs/uuid): generates UUID
-- deferred (https://deno.land/std@0.99.0/async/deferred.ts): creates neater promises
+- Deno standard library {uuid, deffered} (https://deno.land/std)
+  > uuid (https://deno.land/std@0.100.0/uuid): generates unique identifier that's sent off with iframe messages. Used for identifying payloads
+  > deferred (https://deno.land/std@0.99.0/async/deferred.ts): creates neater promises
 */
 import { Router } from "./classes/Router.js";
-import { v4 as uuidv4 } from "./deps/uuid/index.js";
+import { v4 as uuidv4 } from "./deps/deno/uuid/mod.js"
 import * as DenoAsync from "./deps/deno/async/mod.js";
 
 class Identity {
@@ -137,7 +138,7 @@ class Identity {
           this.identityWindow.close();
           this.identityWindow = null;
           this.log("Closed identity window");
-          this.contactFrame(uuidv4(), {
+          this.contactFrame(uuidv4.generate(), {
             service,
             method: "info",
           });
@@ -216,7 +217,7 @@ class Identity {
     let locals = JSON.parse(localStorage.getItem("users"));
     locals = locals.users[locals.publicKeyAdded];
     this.contactFrame(
-      uuidv4(),
+      uuidv4.generate(),
       {
         service: "identity",
         method: "sign",
@@ -279,7 +280,7 @@ class Identity {
     this.config = Object.assign({}, this.config, config);
     this.router = new Router(this);
 
-    this.log(`Generating test UUID: ${uuidv4()}`);
+    this.log(`Generating test UUID: ${uuidv4.generate()}`);
     window.addEventListener("message", (msg) => {
       // basic checks to make sure window calls are accurate
       if (!msg.data) return;
