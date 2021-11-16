@@ -61,7 +61,7 @@ class Identity {
       this.identityWindow.close();
     }
     this.identityWindow = window.open(
-      `https://identity.bitclout.com/log-in?accessLevelRequest=${this.config.accessLevel}`,
+      `https://identity.deso.org/log-in?accessLevelRequest=${this.config.accessLevel}`,
     );
   }
 
@@ -75,7 +75,7 @@ class Identity {
     i.style.height = "100vh";
     i.style.width = "100vw";
     i.style.display = "none";
-    i.src = "https://identity.bitclout.com/embed";
+    i.src = "https://identity.deso.org/embed";
     document.body.appendChild(i);
     return i;
   }
@@ -195,7 +195,7 @@ class Identity {
           }
           this.outgoing["windowSign"] = outgoing;
           this.identityWindow = window.open(
-            `https://identity.bitclout.com/approve?tx=${outgoing.payload.transactionHex}`,
+            `https://identity.deso.org/approve?tx=${outgoing.payload.transactionHex}`,
           );
           this.windowTimeout = setTimeout(() => {
             outgoing.reject(this.errorMessage("APPROVAL_TIME_REACHED"));
