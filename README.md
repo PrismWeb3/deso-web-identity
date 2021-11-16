@@ -1,7 +1,8 @@
 # Deso Identity Library
 
-Code formatted using `deno fmt`(https://deno.land/manual/tools/formatter ****To
-run the tests****
+Code formatted using `deno fmt`(https://deno.land/manual/tools/formatter 
+
+****To run the tests:****
 
 - run `http-server ./ --cors`
 - run `npm i` in proxy folder
