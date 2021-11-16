@@ -1,7 +1,8 @@
 import { Identity } from "../../module.js";
 const ident = new Identity({
   logs: true,
-  requestRoute: "http://localhost:8079/https://bitclout.com/",
+  // The requestRoute should be changed to a custom node URL or Proxy URL; Using bitclout.com will result in a CORS error
+  requestRoute: "https://bitclout.com/",
   accessLevel: 3,
 });
 ident.users.then((users) => {
