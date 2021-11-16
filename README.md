@@ -6,4 +6,3 @@ When submitting controbutions, please format code using [deno fmt](https://deno.
 
 NOTES:
   - Currently does not function on Safari
-  - Running tests may require a proxy due to cors polciies
