@@ -1,12 +1,9 @@
 # Deso Identity Library
 
-Code formatted using `deno fmt`(https://deno.land/manual/tools/formatter 
+This library was developed by Prism to function as a simple access gateway to [Deso](https://deso.org) Identity on the web. 
 
-****To run the tests:****
+When submitting controbutions, please format code using [deno fmt](https://deno.land/manual/tools/formatter).
 
-- run `http-server ./ --cors`
-- run `npm i` in proxy folder
-- run `node ./proxy/start.js`
-- navigate to `http://192.168.56.1:8080/tests/`
-
-NOTE: Currently does not function on Safari
+NOTES:
+  - Currently does not function on Safari
+  - Running tests may require a proxy due to cors polciies
